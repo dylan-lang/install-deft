@@ -1,0 +1,35 @@
+# Use this action if you need a version of deft newer than the one in the most recent
+# Open Dylan release.  Normally it shouldn't be necessary to use this action since the
+# install-opendylan action installs deft in Open Dylan's bin directory.
+
+name: install-deft
+description: Install the deft command-line tool
+inputs:
+  tag:
+    required: false
+    type: string
+    default: v0.12.0
+
+runs:
+  using: composite
+  steps:
+    - uses: dylan-lang/install-opendylan@v3
+
+    - uses: actions/checkout@v4
+      with:
+        repository: dylan-lang/deft
+        submodules: recursive
+        ref: ${{ inputs.tag }}
+        path: deft
+
+    - name: Build and install deft
+      shell: bash
+      run: |
+        DYLAN=${GITHUB_WORKSPACE}/deft make -C deft install
+        # Link "deft" to "deft-app" until deft's Makefile does the right thing.
+        # Should be in v0.13.0.
+        if [[ -x ${GITHUB_WORKSPACE}/deft/bin/deft-app ]]; then
+          ln ${GITHUB_WORKSPACE}/deft/bin/deft-app ${GITHUB_WORKSPACE}/deft/bin/deft
+        fi
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#adding-a-system-path
+        echo "${GITHUB_WORKSPACE}/deft/bin" >> ${GITHUB_PATH}
